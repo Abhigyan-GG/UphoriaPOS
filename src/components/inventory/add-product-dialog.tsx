@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -17,7 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PlusCircle, Wand2, Loader2 } from "lucide-react";
 import type { Category } from '@/lib/types';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
@@ -31,11 +32,10 @@ const productSchema = z.object({
   sku: z.string().min(1, 'SKU is required'),
   category_id: z.string().min(1, 'Category is required'),
   stock: z.coerce.number().int().min(0, 'Stock must be a non-negative integer'),
-  image_url: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
   description: z.string().optional(),
 });
 
-type ProductFormValues = z.infer<typeof productSchema>;
+type ProductFormValues = Omit<z.infer<typeof productSchema>, 'image_url'>;
 
 interface AddProductDialogProps {
   categories: Category[];
@@ -44,6 +44,7 @@ interface AddProductDialogProps {
 export function AddProductDialog({ categories }: AddProductDialogProps) {
   const [open, setOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const { toast } = useToast();
 
   const form = useForm<ProductFormValues>({
@@ -55,10 +56,22 @@ export function AddProductDialog({ categories }: AddProductDialogProps) {
       sku: '',
       category_id: '',
       stock: 0,
-      image_url: '',
       description: '',
     },
   });
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      setImagePreview(null);
+    }
+  };
 
   const handleGenerateDescription = async () => {
     const { name, price, category_id } = form.getValues();
@@ -92,7 +105,9 @@ export function AddProductDialog({ categories }: AddProductDialogProps) {
   };
 
   const onSubmit = async (data: ProductFormValues) => {
-    const imageUrl = data.image_url || `https://picsum.photos/seed/${data.sku || 'new-product'}/400/400`;
+    // TODO: The image upload functionality is not fully wired up yet.
+    // For now, we'll use a placeholder image.
+    const imageUrl = `https://picsum.photos/seed/${data.sku || 'new-product'}/400/400`;
 
     const result = await addProductAction({
       ...data,
@@ -106,17 +121,24 @@ export function AddProductDialog({ categories }: AddProductDialogProps) {
       });
       setOpen(false);
       form.reset();
+      setImagePreview(null);
     } else {
       toast({
         variant: "destructive",
-        title: "Error",
+        title: "Error adding product",
         description: result.message,
       });
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(isOpen) => {
+        setOpen(isOpen);
+        if (!isOpen) {
+            form.reset();
+            setImagePreview(null);
+        }
+    }}>
       <DialogTrigger asChild>
         <Button>
           <PlusCircle className="mr-2 h-4 w-4" />
@@ -170,17 +192,22 @@ export function AddProductDialog({ categories }: AddProductDialogProps) {
                     <FormItem><FormLabel>Stock</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
                  )}/>
               </div>
-              <FormField
-                control={form.control}
-                name="image_url"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Image URL (Optional)</FormLabel>
-                    <FormControl><Input {...field} placeholder="https://example.com/image.png" /></FormControl>
-                    <FormMessage />
-                  </FormItem>
+              <FormItem>
+                <FormLabel>Product Image</FormLabel>
+                <FormControl>
+                  <Input 
+                    type="file" 
+                    accept="image/*" 
+                    onChange={handleImageChange}
+                  />
+                </FormControl>
+                {imagePreview && (
+                  <div className="mt-4">
+                    <Image src={imagePreview} alt="Product preview" width={100} height={100} className="rounded-md object-cover" />
+                  </div>
                 )}
-              />
+                <FormMessage />
+              </FormItem>
               <FormField
                 control={form.control}
                 name="description"

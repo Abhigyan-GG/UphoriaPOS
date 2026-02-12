@@ -19,7 +19,14 @@ function initializeAdmin() {
       );
     }
     
-    const serviceAccount = JSON.parse(serviceAccountKey);
+    let serviceAccount;
+    try {
+        serviceAccount = JSON.parse(serviceAccountKey);
+    } catch (parseError: any) {
+        throw new Error(
+            `Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY. Please ensure it's a valid JSON string copied from the Firebase console. The value you provided may be malformed. Internal error: ${parseError.message}`
+        );
+    }
     
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
@@ -29,7 +36,7 @@ function initializeAdmin() {
     authAdmin = admin.auth();
   } catch (e: any) {
     console.error('Failed to initialize Firebase Admin SDK:', e);
-    adminInitError = new Error(`Firebase Admin SDK initialization failed. Please check that your FIREBASE_SERVICE_ACCOUNT_KEY in .env is a valid JSON object. Internal error: ${e.message}`);
+    adminInitError = new Error(`Firebase Admin SDK initialization failed: ${e.message}`);
   }
 }
 
