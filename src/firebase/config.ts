@@ -5,6 +5,7 @@ const firebaseConfig: FirebaseOptions = {
   appId: "1:1000254178969:web:138a8dca0b02f2ab645a08",
   apiKey: "AIzaSyDAxbC4dOKO3FhRBp-SJ2_XOFmf5X_lJT4",
   authDomain: "studio-3553753010-92c77.firebaseapp.com",
+  measurementId: "",
   messagingSenderId: "1000254178969"
 };
 
