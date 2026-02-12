@@ -9,9 +9,11 @@ import type { GenerateWhatsappInvoiceMessageInput } from "@/ai/flows/generate-wh
 import type { Product, CartItem, SaleItem } from "./types";
 import { firestoreAdmin } from "@/firebase/admin";
 
+const serverSideFirebaseErrorMessage = "Server-side Firebase is not configured. Please set the FIREBASE_SERVICE_ACCOUNT_KEY in your .env file.";
+
 export async function addCategoryAction(categoryData: { name: string }) {
     if (!firestoreAdmin) {
-        return { success: false, message: "Server-side Firebase is not configured." };
+        return { success: false, message: serverSideFirebaseErrorMessage };
     }
     if (!categoryData.name || categoryData.name.trim() === '') {
         return { success: false, message: "Category name cannot be empty." };
@@ -30,7 +32,7 @@ export async function addCategoryAction(categoryData: { name: string }) {
 
 export async function addProductAction(productData: Omit<Product, 'id' | 'created_at' | 'updated_at'>) {
     if (!firestoreAdmin) {
-        return { success: false, message: "Server-side Firebase is not configured." };
+        return { success: false, message: serverSideFirebaseErrorMessage };
     }
     try {
         const docRef = await firestoreAdmin.collection('products').add({
@@ -48,7 +50,7 @@ export async function addProductAction(productData: Omit<Product, 'id' | 'create
 
 export async function deleteProductAction(productId: string) {
     if (!firestoreAdmin) {
-        return { success: false, message: "Server-side Firebase is not configured." };
+        return { success: false, message: serverSideFirebaseErrorMessage };
     }
     try {
         await firestoreAdmin.collection('products').doc(productId).delete();
@@ -73,7 +75,7 @@ interface SaleData {
 
 export async function completeSaleAction(saleData: SaleData) {
     if (!firestoreAdmin) {
-        return { success: false, message: "Server-side Firebase is not configured." };
+        return { success: false, message: serverSideFirebaseErrorMessage };
     }
     const { items, customerPhone, totals } = saleData;
 
@@ -146,7 +148,7 @@ export async function generateWhatsappMessageAction(input: GenerateWhatsappInvoi
 
 export async function resendInvoiceAction(saleId: string) {
     if (!firestoreAdmin) {
-        return { success: false, message: "Server-side Firebase is not configured." };
+        return { success: false, message: serverSideFirebaseErrorMessage };
     }
     // In a real app, this would trigger a flow to resend the invoice.
     console.log(`Simulating resend of WhatsApp invoice for saleId: ${saleId}`);
