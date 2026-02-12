@@ -7,19 +7,29 @@ import { generateWhatsappInvoiceMessage } from "@/ai/flows/generate-whatsapp-inv
 import type { GenerateProductDescriptionInput } from "@/ai/flows/generate-product-description";
 import type { GenerateWhatsappInvoiceMessageInput } from "@/ai/flows/generate-whatsapp-invoice-message";
 import type { Product, CartItem, SaleItem } from "./types";
-import { firestoreAdmin } from "@/firebase/admin";
+import { firestoreAdmin, adminInitError } from "@/firebase/admin";
 
-const serverSideFirebaseErrorMessage = "Server-side Firebase is not configured. Please set the FIREBASE_SERVICE_ACCOUNT_KEY in your .env file.";
+const serverSideFirebaseErrorMessage = "An unexpected error occurred with the server-side Firebase configuration.";
 
-export async function addCategoryAction(categoryData: { name: string }) {
+function checkFirebaseAdmin() {
+    if (adminInitError) {
+        return { success: false, message: adminInitError.message };
+    }
     if (!firestoreAdmin) {
         return { success: false, message: serverSideFirebaseErrorMessage };
     }
+    return { success: true, message: "" };
+}
+
+export async function addCategoryAction(categoryData: { name: string }) {
+    const adminCheck = checkFirebaseAdmin();
+    if (!adminCheck.success) return adminCheck;
+
     if (!categoryData.name || categoryData.name.trim() === '') {
         return { success: false, message: "Category name cannot be empty." };
     }
     try {
-        const docRef = await firestoreAdmin.collection('categories').add({
+        const docRef = await firestoreAdmin!.collection('categories').add({
             name: categoryData.name,
         });
         revalidatePath('/dashboard/inventory');
@@ -31,11 +41,11 @@ export async function addCategoryAction(categoryData: { name: string }) {
 }
 
 export async function addProductAction(productData: Omit<Product, 'id' | 'created_at' | 'updated_at'>) {
-    if (!firestoreAdmin) {
-        return { success: false, message: serverSideFirebaseErrorMessage };
-    }
+    const adminCheck = checkFirebaseAdmin();
+    if (!adminCheck.success) return adminCheck;
+
     try {
-        const docRef = await firestoreAdmin.collection('products').add({
+        const docRef = await firestoreAdmin!.collection('products').add({
             ...productData,
             created_at: FieldValue.serverTimestamp(),
             updated_at: FieldValue.serverTimestamp(),
@@ -49,11 +59,11 @@ export async function addProductAction(productData: Omit<Product, 'id' | 'create
 }
 
 export async function deleteProductAction(productId: string) {
-    if (!firestoreAdmin) {
-        return { success: false, message: serverSideFirebaseErrorMessage };
-    }
+    const adminCheck = checkFirebaseAdmin();
+    if (!adminCheck.success) return adminCheck;
+
     try {
-        await firestoreAdmin.collection('products').doc(productId).delete();
+        await firestoreAdmin!.collection('products').doc(productId).delete();
         revalidatePath('/dashboard/inventory');
         return { success: true };
     } catch (error: any) {
@@ -74,9 +84,9 @@ interface SaleData {
 }
 
 export async function completeSaleAction(saleData: SaleData) {
-    if (!firestoreAdmin) {
-        return { success: false, message: serverSideFirebaseErrorMessage };
-    }
+    const adminCheck = checkFirebaseAdmin();
+    if (!adminCheck.success) return adminCheck;
+
     const { items, customerPhone, totals } = saleData;
 
     try {
@@ -97,15 +107,15 @@ export async function completeSaleAction(saleData: SaleData) {
             invoice_pdf_url: '', // This would be generated and uploaded in a real scenario
         };
 
-        const batch = firestoreAdmin.batch();
+        const batch = firestoreAdmin!.batch();
         
         // 1. Create the sale document
-        const saleRef = firestoreAdmin.collection('sales').doc();
+        const saleRef = firestoreAdmin!.collection('sales').doc();
         batch.set(saleRef, saleDoc);
 
         // 2. Decrement stock for each product
         for (const item of items) {
-            const productRef = firestoreAdmin.collection('products').doc(item.product_id);
+            const productRef = firestoreAdmin!.collection('products').doc(item.product_id);
             batch.update(productRef, {
                 stock: FieldValue.increment(-item.quantity)
             });
@@ -147,15 +157,15 @@ export async function generateWhatsappMessageAction(input: GenerateWhatsappInvoi
 }
 
 export async function resendInvoiceAction(saleId: string) {
-    if (!firestoreAdmin) {
-        return { success: false, message: serverSideFirebaseErrorMessage };
-    }
+    const adminCheck = checkFirebaseAdmin();
+    if (!adminCheck.success) return adminCheck;
+    
     // In a real app, this would trigger a flow to resend the invoice.
     console.log(`Simulating resend of WhatsApp invoice for saleId: ${saleId}`);
     
     // As an example, let's update the status to 'pending' to re-trigger a hypothetical worker.
     try {
-        await firestoreAdmin.collection('sales').doc(saleId).update({
+        await firestoreAdmin!.collection('sales').doc(saleId).update({
             whatsapp_status: 'pending'
         });
         revalidatePath('/dashboard/sales');
