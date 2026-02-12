@@ -1,3 +1,64 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "prod1",
+      "description": "A bottle of rose-scented perfume.",
+      "imageUrl": "https://images.unsplash.com/photo-1594035910387-fea47794261f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxwZXJmdW1lJTIwYm90dGxlfGVufDB8fHx8MTc3MDkxNTE4OHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "perfume bottle"
+    },
+    {
+      "id": "prod2",
+      "description": "A bottle of sandalwood-scented cologne.",
+      "imageUrl": "https://images.unsplash.com/photo-1737916061048-5a288b8e9f26?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxjb2xvZ25lJTIwYm90dGxlfGVufDB8fHx8MTc3MDkxOTg5NXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "cologne bottle"
+    },
+    {
+      "id": "prod3",
+      "description": "A decorative vintage pistol.",
+      "imageUrl": "https://images.unsplash.com/photo-1642247911574-12d6e2b28af6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHx2aW50YWdlJTIwcGlzdG9sfGVufDB8fHx8MTc3MDkxOTg5NXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "vintage pistol"
+    },
+    {
+      "id": "prod4",
+      "description": "A luxurious silk scarf.",
+      "imageUrl": "https://images.unsplash.com/photo-1677478989068-38a2f447ab44?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8c2lsayUyMHNjYXJmfGVufDB8fHx8MTc3MDkxMTQ0M3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "silk scarf"
+    },
+    {
+      "id": "prod5",
+      "description": "A set of whiskey glasses.",
+      "imageUrl": "https://images.unsplash.com/photo-1665935864412-5aa250c24ed0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHx3aGlza2V5JTIwZ2xhc3Nlc3xlbnwwfHx8fDE3NzA5MTk4OTV8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "whiskey glasses"
+    },
+    {
+      "id": "prod6",
+      "description": "A leather-bound journal.",
+      "imageUrl": "https://images.unsplash.com/photo-1672415981198-93e5c3c5df7d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxsZWF0aGVyJTIwam91cm5hbHxlbnwwfHx8fDE3NzA5MTk4OTV8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "leather journal"
+    },
+    {
+      "id": "prod7",
+      "description": "A classic fountain pen.",
+      "imageUrl": "https://images.unsplash.com/photo-1518674660708-0e2c0473e68e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxmb3VudGFpbiUyMHBlbnxlbnwwfHx8fDE3NzA5MTk4OTR8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "fountain pen"
+    },
+    {
+      "id": "prod8",
+      "description": "A designer handbag.",
+      "imageUrl": "https://images.unsplash.com/photo-1594223274512-ad4803739b7c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxoYW5kYmFnfGVufDB8fHx8MTc3MDgxMTUzMHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "handbag"
+    },
+    {
+      "id": "prod9",
+      "description": "A box of premium cigars.",
+      "imageUrl": "https://images.unsplash.com/photo-1592505690387-24e71ca99897?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxjaWdhcnN8ZW58MHx8fHwxNzcwOTE5ODk0fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "cigars"
+    },
+    {
+      "id": "prod10",
+      "description": "A scented candle in a glass jar.",
+      "imageUrl": "https://images.unsplash.com/photo-1570823635306-250abb06d4b3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxzY2VudGVkJTIwY2FuZGxlfGVufDB8fHx8MTc3MDkxMzA0N3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "scented candle"
+    }
+  ]
 }
