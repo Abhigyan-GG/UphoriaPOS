@@ -7,11 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Logo } from '@/components/logo';
 import { useAuth, useFirestore } from '@/firebase';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { doc, setDoc } from 'firebase/firestore';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Loader2 } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -57,6 +57,35 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
+  
+  const handleGoogleSignIn = async () => {
+    if (!auth || !firestore) return;
+    setLoading(true);
+    const provider = new GoogleAuthProvider();
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+
+      const userDocRef = doc(firestore, "users", user.uid);
+      await setDoc(userDocRef, {
+        displayName: user.displayName,
+        email: user.email,
+        photoURL: user.photoURL
+      }, { merge: true });
+
+      router.push('/dashboard');
+    } catch (error: any) {
+      console.error("Google Sign-In failed", error);
+      toast({
+        variant: "destructive",
+        title: "Google Sign-In Failed",
+        description: error.message,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-4">
@@ -114,6 +143,20 @@ export default function LoginPage() {
           <CardFooter className="flex flex-col gap-4">
             <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" disabled={loading}>
               {loading ? (isSignUp ? 'Creating Account...' : 'Entering...') : (isSignUp ? 'Sign Up' : 'Enter POS')}
+            </Button>
+            <div className="relative w-full">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">
+                  Or continue with
+                </span>
+              </div>
+            </div>
+            <Button variant="outline" className="w-full" type="button" onClick={handleGoogleSignIn} disabled={loading}>
+                <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512"><path fill="currentColor" d="M488 261.8C488 403.3 381.5 512 244 512 111.8 512 0 398.2 0 256S111.8 0 244 0c71.8 0 132.3 29.5 175.8 76.5l-64.3 63.9C325.5 113.8 288.7 96 244 96c-82.6 0-149.8 67.2-149.8 160s67.2 160 149.8 160c97.2 0 130.3-72.8 134.3-110.2H244v-76h244z"></path></svg>
+              Google
             </Button>
             <Button type="button" variant="link" size="sm" onClick={() => setIsSignUp(!isSignUp)}>
               {isSignUp ? 'Already have an account? Log In' : "Don't have an account? Sign Up"}

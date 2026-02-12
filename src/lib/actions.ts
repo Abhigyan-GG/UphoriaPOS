@@ -9,6 +9,25 @@ import type { GenerateWhatsappInvoiceMessageInput } from "@/ai/flows/generate-wh
 import type { Product, CartItem, SaleItem } from "./types";
 import { firestoreAdmin } from "@/firebase/admin";
 
+export async function addCategoryAction(categoryData: { name: string }) {
+    if (!firestoreAdmin) {
+        return { success: false, message: "Server-side Firebase is not configured." };
+    }
+    if (!categoryData.name || categoryData.name.trim() === '') {
+        return { success: false, message: "Category name cannot be empty." };
+    }
+    try {
+        const docRef = await firestoreAdmin.collection('categories').add({
+            name: categoryData.name,
+        });
+        revalidatePath('/dashboard/inventory');
+        return { success: true, docId: docRef.id };
+    } catch (error: any) {
+        console.error("Error adding category:", error);
+        return { success: false, message: error.message || "Failed to add category." };
+    }
+}
+
 export async function addProductAction(productData: Omit<Product, 'id' | 'created_at' | 'updated_at'>) {
     if (!firestoreAdmin) {
         return { success: false, message: "Server-side Firebase is not configured." };

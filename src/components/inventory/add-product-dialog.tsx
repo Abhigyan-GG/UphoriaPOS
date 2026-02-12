@@ -31,6 +31,7 @@ const productSchema = z.object({
   sku: z.string().min(1, 'SKU is required'),
   category_id: z.string().min(1, 'Category is required'),
   stock: z.coerce.number().int().min(0, 'Stock must be a non-negative integer'),
+  image_url: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
   description: z.string().optional(),
 });
 
@@ -54,6 +55,7 @@ export function AddProductDialog({ categories }: AddProductDialogProps) {
       sku: '',
       category_id: '',
       stock: 0,
+      image_url: '',
       description: '',
     },
   });
@@ -90,11 +92,11 @@ export function AddProductDialog({ categories }: AddProductDialogProps) {
   };
 
   const onSubmit = async (data: ProductFormValues) => {
-    const placeholderImageUrl = 'https://picsum.photos/seed/new-product/400/400';
+    const imageUrl = data.image_url || `https://picsum.photos/seed/${data.sku || 'new-product'}/400/400`;
 
     const result = await addProductAction({
       ...data,
-      image_url: placeholderImageUrl,
+      image_url: imageUrl,
     });
 
     if (result.success) {
@@ -170,6 +172,17 @@ export function AddProductDialog({ categories }: AddProductDialogProps) {
               </div>
               <FormField
                 control={form.control}
+                name="image_url"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Image URL (Optional)</FormLabel>
+                    <FormControl><Input {...field} placeholder="https://example.com/image.png" /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
                 name="description"
                 render={({ field }) => (
                   <FormItem>
@@ -187,7 +200,10 @@ export function AddProductDialog({ categories }: AddProductDialogProps) {
               />
             </div>
             <DialogFooter>
-              <Button type="submit">Save Product</Button>
+              <Button type="submit" disabled={form.formState.isSubmitting}>
+                {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Save Product
+              </Button>
             </DialogFooter>
           </form>
         </Form>
