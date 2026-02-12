@@ -1,26 +1,109 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
+import { FieldValue } from "firebase-admin/firestore";
 import { generateProductDescription } from "@/ai/flows/generate-product-description";
 import { generateWhatsappInvoiceMessage } from "@/ai/flows/generate-whatsapp-invoice-message";
 import type { GenerateProductDescriptionInput } from "@/ai/flows/generate-product-description";
 import type { GenerateWhatsappInvoiceMessageInput } from "@/ai/flows/generate-whatsapp-invoice-message";
-import type { Product } from "./types";
-
+import type { Product, CartItem, SaleItem } from "./types";
+import { firestoreAdmin } from "@/firebase/admin";
 
 export async function addProductAction(productData: Omit<Product, 'id' | 'created_at' | 'updated_at'>) {
-    console.warn("addProductAction called, but is temporarily disabled.", productData);
-    return { success: false, message: "Adding products is temporarily disabled while we fix authentication." };
+    if (!firestoreAdmin) {
+        return { success: false, message: "Server-side Firebase is not configured." };
+    }
+    try {
+        const docRef = await firestoreAdmin.collection('products').add({
+            ...productData,
+            created_at: FieldValue.serverTimestamp(),
+            updated_at: FieldValue.serverTimestamp(),
+        });
+        revalidatePath('/dashboard/inventory');
+        return { success: true, docId: docRef.id };
+    } catch (error: any) {
+        console.error("Error adding product:", error);
+        return { success: false, message: error.message || "Failed to add product." };
+    }
 }
 
 export async function deleteProductAction(productId: string) {
-    console.warn("deleteProductAction called, but is temporarily disabled.", productId);
-    return { success: false, message: "Deleting products is temporarily disabled while we fix authentication." };
+    if (!firestoreAdmin) {
+        return { success: false, message: "Server-side Firebase is not configured." };
+    }
+    try {
+        await firestoreAdmin.collection('products').doc(productId).delete();
+        revalidatePath('/dashboard/inventory');
+        return { success: true };
+    } catch (error: any) {
+        console.error("Error deleting product:", error);
+        return { success: false, message: error.message || "Failed to delete product." };
+    }
 }
 
-export async function completeSaleAction(saleData: any) {
-    console.warn("completeSaleAction called, but is temporarily disabled.", saleData);
-    return { success: false, message: "Completing sales is temporarily disabled while we fix authentication." };
+interface SaleData {
+    items: CartItem[];
+    customerPhone: string;
+    totals: {
+        subtotal: number;
+        tax: number;
+        discount: number;
+        total: number;
+    }
 }
+
+export async function completeSaleAction(saleData: SaleData) {
+    if (!firestoreAdmin) {
+        return { success: false, message: "Server-side Firebase is not configured." };
+    }
+    const { items, customerPhone, totals } = saleData;
+
+    try {
+        const saleItems: SaleItem[] = items.map(item => ({
+            product_id: item.product_id,
+            product_name: item.product_name,
+            quantity: item.quantity,
+            unit_price: item.final_price,
+            line_total: item.final_price * item.quantity,
+        }));
+        
+        const saleDoc = {
+            ...totals,
+            customer_phone: customerPhone,
+            items: saleItems,
+            created_at: FieldValue.serverTimestamp(),
+            whatsapp_status: customerPhone.length > 3 ? 'pending' : 'skipped',
+            invoice_pdf_url: '', // This would be generated and uploaded in a real scenario
+        };
+
+        const batch = firestoreAdmin.batch();
+        
+        // 1. Create the sale document
+        const saleRef = firestoreAdmin.collection('sales').doc();
+        batch.set(saleRef, saleDoc);
+
+        // 2. Decrement stock for each product
+        for (const item of items) {
+            const productRef = firestoreAdmin.collection('products').doc(item.product_id);
+            batch.update(productRef, {
+                stock: FieldValue.increment(-item.quantity)
+            });
+        }
+        
+        await batch.commit();
+        
+        revalidatePath('/dashboard/sales');
+        revalidatePath('/dashboard/inventory');
+        revalidatePath('/dashboard');
+
+        return { success: true, saleId: saleRef.id };
+
+    } catch (error: any) {
+        console.error("Error completing sale:", error);
+        return { success: false, message: error.message || "Failed to complete sale." };
+    }
+}
+
 
 export async function generateDescriptionAction(input: GenerateProductDescriptionInput) {
     try {
@@ -43,7 +126,21 @@ export async function generateWhatsappMessageAction(input: GenerateWhatsappInvoi
 }
 
 export async function resendInvoiceAction(saleId: string) {
+    if (!firestoreAdmin) {
+        return { success: false, message: "Server-side Firebase is not configured." };
+    }
+    // In a real app, this would trigger a flow to resend the invoice.
     console.log(`Simulating resend of WhatsApp invoice for saleId: ${saleId}`);
-    await new Promise(resolve => setTimeout(resolve, 500));
-    return { success: true };
+    
+    // As an example, let's update the status to 'pending' to re-trigger a hypothetical worker.
+    try {
+        await firestoreAdmin.collection('sales').doc(saleId).update({
+            whatsapp_status: 'pending'
+        });
+        revalidatePath('/dashboard/sales');
+        return { success: true };
+    } catch (error: any) {
+        console.error("Error resending invoice:", error);
+        return { success: false, message: "Could not resend the invoice." };
+    }
 }
