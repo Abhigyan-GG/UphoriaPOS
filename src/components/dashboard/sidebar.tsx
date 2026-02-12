@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   SidebarContent,
   SidebarHeader,
@@ -12,15 +12,15 @@ import {
   SidebarSeparator,
 } from "@/components/ui/sidebar";
 import {
-  LayoutGrid,
   ShoppingCart,
   Package,
   History,
   LogOut,
-  UserCircle,
 } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useAuth, useUser } from "@/firebase";
+import { signOut } from "firebase/auth";
 
 const menuItems = [
   { href: "/dashboard", label: "POS", icon: ShoppingCart },
@@ -30,6 +30,16 @@ const menuItems = [
 
 export function DashboardSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const auth = useAuth();
+  const { user } = useUser();
+
+  const handleLogout = async () => {
+    if (auth) {
+      await signOut(auth);
+      router.push('/');
+    }
+  };
 
   return (
     <>
@@ -56,24 +66,24 @@ export function DashboardSidebar() {
       <SidebarFooter>
         <SidebarSeparator />
         <SidebarMenu>
+          {user && (
+            <SidebarMenuItem>
+               <div className="flex items-center gap-3 px-2 py-1">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={user.photoURL ?? `https://picsum.photos/seed/${user.uid}/100/100`} alt={user.displayName ?? 'Staff'}/>
+                    <AvatarFallback>{user.displayName?.[0] ?? 'S'}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col text-sm">
+                    <span className="font-semibold">{user.displayName ?? 'Staff Member'}</span>
+                    <span className="text-muted-foreground text-xs">{user.email}</span>
+                  </div>
+               </div>
+            </SidebarMenuItem>
+          )}
           <SidebarMenuItem>
-             <div className="flex items-center gap-3 px-2 py-1">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src="https://picsum.photos/seed/user/100/100" alt="Staff"/>
-                  <AvatarFallback>S</AvatarFallback>
-                </Avatar>
-                <div className="flex flex-col text-sm">
-                  <span className="font-semibold">Staff Member</span>
-                  <span className="text-muted-foreground text-xs">staff@example.com</span>
-                </div>
-             </div>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <Link href="/login" legacyBehavior passHref>
-              <SidebarMenuButton icon={<LogOut />} className="text-destructive hover:bg-destructive/10 hover:text-destructive">
-                Logout
-              </SidebarMenuButton>
-            </Link>
+            <SidebarMenuButton onClick={handleLogout} icon={<LogOut />} className="text-destructive hover:bg-destructive/10 hover:text-destructive">
+              Logout
+            </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>

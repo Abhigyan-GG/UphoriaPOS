@@ -23,6 +23,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "../ui/card";
 import Image from "next/image";
+import { deleteProductAction } from "@/lib/actions";
+import { useToast } from "@/hooks/use-toast";
 
 interface InventoryTableProps {
   products: Product[];
@@ -30,8 +32,28 @@ interface InventoryTableProps {
 }
 
 export function InventoryTable({ products, categories }: InventoryTableProps) {
+  const { toast } = useToast();
+
   const getCategoryName = (categoryId: string) => {
     return categories.find((c) => c.id === categoryId)?.name || "N/A";
+  };
+
+  const handleDelete = async (productId: string, productName: string) => {
+    if (confirm(`Are you sure you want to delete ${productName}?`)) {
+      const result = await deleteProductAction(productId);
+      if (result.success) {
+        toast({
+          title: "Product Deleted",
+          description: `${productName} has been removed from inventory.`,
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: result.message,
+        });
+      }
+    }
   };
 
   return (
@@ -94,7 +116,12 @@ export function InventoryTable({ products, categories }: InventoryTableProps) {
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuItem>Edit</DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-destructive">Delete</DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-destructive"
+                          onClick={() => handleDelete(product.id, product.name)}
+                        >
+                          Delete
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>

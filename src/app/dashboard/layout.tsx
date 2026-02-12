@@ -1,5 +1,6 @@
 import { SidebarProvider, Sidebar, SidebarInset } from "@/components/ui/sidebar";
 import { DashboardSidebar } from "@/components/dashboard/sidebar";
+import { AuthGuard } from "@/components/auth/auth-guard";
 
 export default function DashboardLayout({
   children,
@@ -7,13 +8,15 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <SidebarProvider>
-      <Sidebar>
-        <DashboardSidebar />
-      </Sidebar>
-      <SidebarInset>
-        {children}
-      </SidebarInset>
-    </SidebarProvider>
+    <AuthGuard>
+      <SidebarProvider>
+        <Sidebar>
+          <DashboardSidebar />
+        </Sidebar>
+        <SidebarInset>
+          {children}
+        </SidebarInset>
+      </SidebarProvider>
+    </AuthGuard>
   );
 }

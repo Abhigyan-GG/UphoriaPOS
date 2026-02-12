@@ -2,16 +2,18 @@
 
 import { useState, useMemo, useContext } from 'react';
 import { ProductCard } from './product-card';
-import { PRODUCTS, CATEGORIES } from '@/lib/data';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { CartContext } from '@/app/dashboard/page';
+import { useProducts } from '@/hooks/use-products';
+import { Skeleton } from '../ui/skeleton';
 
 export function ProductGrid() {
   const [searchTerm, setSearchTerm] = useState('');
   const cartContext = useContext(CartContext);
+  const { data: products, loading: productsLoading } = useProducts();
 
   if (!cartContext) {
     throw new Error('ProductGrid must be used within a CartProvider');
@@ -19,10 +21,11 @@ export function ProductGrid() {
   const { addToCart } = cartContext;
 
   const filteredProducts = useMemo(() => {
-    return PRODUCTS.filter((product) =>
+    if (!products) return [];
+    return products.filter((product) =>
       product.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
-  }, [searchTerm]);
+  }, [searchTerm, products]);
 
   return (
     <Card className="flex-1 flex flex-col">
@@ -41,15 +44,21 @@ export function ProductGrid() {
       </CardHeader>
       <CardContent className="flex-1 p-0">
         <ScrollArea className="h-[calc(100vh-theme(spacing.64))]">
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-6 pt-0">
-            {filteredProducts.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                onAddToCart={() => addToCart(product)}
-              />
-            ))}
-          </div>
+          {productsLoading ? (
+             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-6 pt-0">
+                {[...Array(8)].map((_, i) => <Skeleton key={i} className="h-64 w-full" />)}
+             </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-6 pt-0">
+              {filteredProducts.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  onAddToCart={() => addToCart(product)}
+                />
+              ))}
+            </div>
+          )}
         </ScrollArea>
       </CardContent>
     </Card>

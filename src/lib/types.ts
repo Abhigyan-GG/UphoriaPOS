@@ -1,3 +1,5 @@
+import type { Timestamp } from 'firebase/firestore';
+
 export interface Category {
   id: string;
   name: string;
@@ -12,7 +14,8 @@ export interface Product {
   category_id: string;
   stock: number;
   image_url: string;
-  created_at: string;
+  created_at: Timestamp;
+  updated_at: Timestamp;
 }
 
 export interface CartItem {
@@ -40,6 +43,6 @@ export interface Sale {
   customer_phone: string;
   invoice_pdf_url: string;
   whatsapp_status: 'pending' | 'sent' | 'failed' | 'skipped';
-  created_at: string;
+  created_at: Timestamp;
   items: SaleItem[];
 }

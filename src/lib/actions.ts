@@ -4,7 +4,9 @@ import { generateProductDescription } from "@/ai/flows/generate-product-descript
 import { generateWhatsappInvoiceMessage } from "@/ai/flows/generate-whatsapp-invoice-message";
 import type { GenerateProductDescriptionInput } from "@/ai/flows/generate-product-description";
 import type { GenerateWhatsappInvoiceMessageInput } from "@/ai/flows/generate-whatsapp-invoice-message";
-import type { CartItem } from "./types";
+import type { CartItem, Product } from "./types";
+import { adminDb } from "./firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
 
 interface SaleData {
   items: (CartItem & { line_total: number })[];
@@ -17,43 +19,67 @@ interface SaleData {
   };
 }
 
+export async function addProductAction(productData: Omit<Product, 'id' | 'created_at' | 'updated_at'>) {
+    try {
+        const product = {
+            ...productData,
+            created_at: FieldValue.serverTimestamp(),
+            updated_at: FieldValue.serverTimestamp(),
+        }
+        const docRef = await adminDb.collection('products').add(product);
+        return { success: true, id: docRef.id };
+    } catch (error) {
+        console.error("Error adding product:", error);
+        return { success: false, message: "Failed to add product." };
+    }
+}
+
+export async function deleteProductAction(productId: string) {
+    try {
+        await adminDb.collection('products').doc(productId).delete();
+        return { success: true };
+    } catch (error) {
+        console.error("Error deleting product:", error);
+        return { success: false, message: "Failed to delete product." };
+    }
+}
+
 export async function completeSaleAction(saleData: SaleData) {
-  console.log("Simulating sale completion...");
-  console.log("Sale Data:", JSON.stringify(saleData, null, 2));
+    try {
+        const saleRef = adminDb.collection('sales').doc();
+        const batch = adminDb.batch();
 
-  // 1. Create a Sale document in Firestore (Simulated)
-  const saleId = `SALE-${Date.now()}`;
-  const saleRecord = {
-    id: saleId,
-    ...saleData.totals,
-    customer_phone: saleData.customerPhone,
-    whatsapp_status: saleData.customerPhone ? "pending" : "skipped",
-    created_at: new Date().toISOString(),
-    items: saleData.items.map((item) => ({
-      product_id: item.product_id,
-      product_name: item.product_name,
-      quantity: item.quantity,
-      unit_price: item.final_price,
-      line_total: item.line_total,
-    })),
-  };
-  console.log("Simulated Firestore 'sales' write:", saleRecord);
+        // 1. Create sale document
+        const saleRecord = {
+          ...saleData.totals,
+          customer_phone: saleData.customerPhone,
+          whatsapp_status: saleData.customerPhone ? "pending" : "skipped",
+          created_at: FieldValue.serverTimestamp(),
+          items: saleData.items.map((item) => ({
+            product_id: item.product_id,
+            product_name: item.product_name,
+            quantity: item.quantity,
+            unit_price: item.final_price,
+            line_total: item.line_total,
+          })),
+        };
+        batch.set(saleRef, saleRecord);
 
-  // 2. Reduce product stock in a transaction (Simulated)
-  console.log("Simulating stock reduction...");
-  saleData.items.forEach((item) => {
-    console.log(
-      `- Reducing stock for ${item.product_name} (ID: ${item.product_id}) by ${item.quantity}`
-    );
-  });
-  
-  // 3. Trigger Cloud Function (Simulated)
-  console.log(`Simulating trigger of 'sendWhatsAppInvoice' for saleId: ${saleId}`);
-  
-  // Simulate network delay
-  await new Promise(resolve => setTimeout(resolve, 1000));
+        // 2. Reduce product stock
+        saleData.items.forEach((item) => {
+            const productRef = adminDb.collection('products').doc(item.product_id);
+            batch.update(productRef, { stock: FieldValue.increment(-item.quantity) });
+        });
 
-  return { success: true, saleId: saleId };
+        await batch.commit();
+
+        console.log(`Simulating trigger of 'sendWhatsAppInvoice' for saleId: ${saleRef.id}`);
+
+        return { success: true, saleId: saleRef.id };
+    } catch (error) {
+        console.error("Error completing sale:", error);
+        return { success: false, message: "Failed to complete sale." };
+    }
 }
 
 export async function generateDescriptionAction(input: GenerateProductDescriptionInput) {

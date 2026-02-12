@@ -23,6 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "../ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { resendInvoiceAction } from "@/lib/actions";
+import { Timestamp } from "firebase/firestore";
 
 interface SalesTableProps {
   sales: Sale[];
@@ -67,13 +68,14 @@ export function SalesTable({ sales }: SalesTableProps) {
           <TableBody>
             {sales.map((sale) => {
                 const StatusIcon = statusConfig[sale.whatsapp_status].icon;
+                const createdAtDate = sale.created_at instanceof Timestamp ? sale.created_at.toDate() : new Date(sale.created_at as any);
                 return (
                   <TableRow key={sale.id}>
                     <TableCell className="font-medium">{sale.id}</TableCell>
                     <TableCell>
                       <div className="flex flex-col">
-                        <span>{format(new Date(sale.created_at), "dd MMM yyyy")}</span>
-                        <span className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(sale.created_at), { addSuffix: true })}</span>
+                        <span>{format(createdAtDate, "dd MMM yyyy")}</span>
+                        <span className="text-xs text-muted-foreground">{formatDistanceToNow(createdAtDate, { addSuffix: true })}</span>
                       </div>
                     </TableCell>
                     <TableCell>{sale.customer_phone || "N/A"}</TableCell>

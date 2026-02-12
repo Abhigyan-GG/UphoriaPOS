@@ -21,7 +21,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
-import { generateDescriptionAction } from '@/lib/actions';
+import { generateDescriptionAction, addProductAction } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 
 const productSchema = z.object({
@@ -89,15 +89,28 @@ export function AddProductDialog({ categories }: AddProductDialogProps) {
     }
   };
 
-  const onSubmit = (data: ProductFormValues) => {
-    console.log("New Product Data:", data);
-    // Here you would call a server action to save the product to Firestore
-    toast({
-      title: "Product Added",
-      description: `${data.name} has been added to the inventory.`,
+  const onSubmit = async (data: ProductFormValues) => {
+    const placeholderImageUrl = 'https://picsum.photos/seed/new-product/400/400';
+
+    const result = await addProductAction({
+      ...data,
+      image_url: placeholderImageUrl,
     });
-    setOpen(false);
-    form.reset();
+
+    if (result.success) {
+      toast({
+        title: "Product Added",
+        description: `${data.name} has been added to the inventory.`,
+      });
+      setOpen(false);
+      form.reset();
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: result.message,
+      });
+    }
   };
 
   return (

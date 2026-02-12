@@ -1,0 +1,135 @@
+{
+  "entities": {
+    "Category": {
+      "title": "Category",
+      "description": "A product category.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the category."
+        }
+      },
+      "required": ["name"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "A product in the inventory.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the product."
+        },
+        "price": {
+          "type": "number",
+          "description": "The selling price of the product."
+        },
+        "cost_price": {
+          "type": "number",
+          "description": "The cost price of the product."
+        },
+        "sku": {
+          "type": "string",
+          "description": "The stock keeping unit."
+        },
+        "category_id": {
+          "type": "string",
+          "description": "The ID of the category this product belongs to."
+        },
+        "stock": {
+          "type": "number",
+          "description": "The available stock quantity."
+        },
+        "image_url": {
+          "type": "string",
+          "description": "The URL of the product image."
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The timestamp when the product was created."
+        },
+        "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The timestamp when the product was last updated."
+        }
+      },
+      "required": ["name", "price", "cost_price", "sku", "category_id", "stock", "image_url", "created_at", "updated_at"]
+    },
+    "Sale": {
+        "title": "Sale",
+        "description": "A record of a sale transaction.",
+        "type": "object",
+        "properties": {
+            "subtotal": { "type": "number" },
+            "tax": { "type": "number" },
+            "discount": { "type": "number" },
+            "total": { "type": "number" },
+            "customer_phone": { "type": "string" },
+            "invoice_pdf_url": { "type": "string" },
+            "whatsapp_status": { "type": "string", "enum": ["pending", "sent", "failed", "skipped"] },
+            "created_at": { "type": "string", "format": "date-time" },
+            "items": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "product_id": { "type": "string" },
+                        "product_name": { "type": "string" },
+                        "quantity": { "type": "number" },
+                        "unit_price": { "type": "number" },
+                        "line_total": { "type": "number" }
+                    },
+                    "required": ["product_id", "product_name", "quantity", "unit_price", "line_total"]
+                }
+            }
+        },
+        "required": ["subtotal", "tax", "total", "whatsapp_status", "created_at", "items"]
+    },
+    "UserProfile": {
+        "title": "User Profile",
+        "description": "A user's profile.",
+        "type": "object",
+        "properties": {
+            "email": {
+                "type": "string",
+                "format": "email",
+                "description": "The user's email address."
+            },
+            "displayName": {
+                "type": "string",
+                "description": "The user's display name."
+            },
+            "photoURL": {
+                "type": "string",
+                "format": "uri",
+                "description": "The URL of the user's profile picture."
+            }
+        },
+        "required": ["email"]
+    }
+  },
+  "auth": {
+    "providers": ["email"]
+  },
+  "firestore": {
+    "/categories/{categoryId}": {
+      "schema": { "$ref": "#/backend/entities/Category" },
+      "description": "Product categories."
+    },
+    "/products/{productId}": {
+      "schema": { "$ref": "#/backend/entities/Product" },
+      "description": "All products in the inventory."
+    },
+    "/sales/{saleId}": {
+      "schema": { "$ref": "#/backend/entities/Sale" },
+      "description": "All sales records."
+    },
+    "/users/{userId}": {
+        "schema": { "$ref": "#/backend/entities/UserProfile" },
+        "description": "User profile information."
+    }
+  }
+}
