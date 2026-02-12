@@ -3,18 +3,20 @@ import * as admin from 'firebase-admin';
 // This guard is needed to prevent the app from being initialized multiple times.
 if (!admin.apps.length) {
   try {
-    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY as string);
+    const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+    if (!serviceAccountKey) {
+        throw new Error("FIREBASE_SERVICE_ACCOUNT_KEY environment variable is not set.");
+    }
+    const serviceAccount = JSON.parse(serviceAccountKey);
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
     });
   } catch (e: any) {
     console.error('Failed to initialize Firebase Admin SDK:', e.message);
-    // If the service account key is not set, we can't use the admin SDK.
-    // The app will still work for client-side operations.
   }
 }
 
-const firestoreAdmin = admin.firestore();
-const authAdmin = admin.auth();
+const firestoreAdmin = admin.apps.length > 0 ? admin.firestore() : undefined;
+const authAdmin = admin.apps.length > 0 ? admin.auth() : undefined;
 
 export { firestoreAdmin, authAdmin, admin };
