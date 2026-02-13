@@ -1,3 +1,4 @@
+
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -37,6 +38,22 @@ export async function addCategoryAction(categoryData: { name: string }) {
     } catch (error: any) {
         console.error("Error adding category:", error);
         return { success: false, message: error.message || "Failed to add category." };
+    }
+}
+
+export async function deleteCategoryAction(categoryId: string) {
+    const adminCheck = checkFirebaseAdmin();
+    if (!adminCheck.success) return adminCheck;
+
+    try {
+        // In a real app, you might check if any products are using this category.
+        // For simplicity, we'll just delete it.
+        await firestoreAdmin!.collection('categories').doc(categoryId).delete();
+        revalidatePath('/dashboard/inventory');
+        return { success: true };
+    } catch (error: any) {
+        console.error("Error deleting category:", error);
+        return { success: false, message: error.message || "Failed to delete category." };
     }
 }
 
@@ -96,6 +113,7 @@ export async function completeSaleAction(saleData: SaleData) {
             quantity: item.quantity,
             unit_price: item.final_price,
             line_total: item.final_price * item.quantity,
+            cost_price: item.cost_price,
         }));
         
         const saleDoc = {
@@ -109,11 +127,9 @@ export async function completeSaleAction(saleData: SaleData) {
 
         const batch = firestoreAdmin!.batch();
         
-        // 1. Create the sale document
         const saleRef = firestoreAdmin!.collection('sales').doc();
         batch.set(saleRef, saleDoc);
 
-        // 2. Decrement stock for each product
         for (const item of items) {
             const productRef = firestoreAdmin!.collection('products').doc(item.product_id);
             batch.update(productRef, {
@@ -125,6 +141,7 @@ export async function completeSaleAction(saleData: SaleData) {
         
         revalidatePath('/dashboard/sales');
         revalidatePath('/dashboard/inventory');
+        revalidatePath('/dashboard/analytics');
         revalidatePath('/dashboard');
 
         return { success: true, saleId: saleRef.id };
@@ -132,6 +149,23 @@ export async function completeSaleAction(saleData: SaleData) {
     } catch (error: any) {
         console.error("Error completing sale:", error);
         return { success: false, message: error.message || "Failed to complete sale." };
+    }
+}
+
+
+export async function deleteSaleAction(saleId: string) {
+    const adminCheck = checkFirebaseAdmin();
+    if (!adminCheck.success) return adminCheck;
+
+    try {
+        // Note: This does not restore stock, which might be desired in a real "return" flow.
+        await firestoreAdmin!.collection('sales').doc(saleId).delete();
+        revalidatePath('/dashboard/sales');
+        revalidatePath('/dashboard/analytics');
+        return { success: true };
+    } catch (error: any) {
+        console.error("Error deleting sale:", error);
+        return { success: false, message: error.message || "Failed to delete sale." };
     }
 }
 
@@ -160,16 +194,42 @@ export async function resendInvoiceAction(saleId: string) {
     const adminCheck = checkFirebaseAdmin();
     if (!adminCheck.success) return adminCheck;
     
-    // In a real app, this would trigger a flow to resend the invoice.
-    console.log(`Simulating resend of WhatsApp invoice for saleId: ${saleId}`);
-    
-    // As an example, let's update the status to 'pending' to re-trigger a hypothetical worker.
     try {
-        await firestoreAdmin!.collection('sales').doc(saleId).update({
-            whatsapp_status: 'pending'
-        });
-        revalidatePath('/dashboard/sales');
-        return { success: true };
+        const saleDoc = await firestoreAdmin!.collection('sales').doc(saleId).get();
+        if (!saleDoc.exists) {
+            return { success: false, message: "Sale not found." };
+        }
+
+        const sale = saleDoc.data();
+        if (!sale || !sale.customer_phone || sale.whatsapp_status === 'skipped') {
+            return { success: false, message: "No customer phone or sending is skipped." };
+        }
+
+        const whatsappInput: GenerateWhatsappInvoiceMessageInput = {
+            customerName: 'Valued Customer',
+            storeName: 'Guns And Gulab',
+            invoiceNumber: saleId,
+            totalAmount: `₹${sale.total.toFixed(2)}`,
+            invoiceLink: 'http://example.com/invoice.pdf', // Placeholder
+            itemsPurchased: sale.items.map((i: SaleItem) => i.product_name)
+        };
+
+        const result = await generateWhatsappMessageAction(whatsappInput);
+        
+        if (result.success) {
+            console.log("Simulating sending WhatsApp message:", result.message);
+            await firestoreAdmin!.collection('sales').doc(saleId).update({
+                whatsapp_status: 'sent'
+            });
+            revalidatePath('/dashboard/sales');
+            return { success: true };
+        } else {
+            await firestoreAdmin!.collection('sales').doc(saleId).update({
+                whatsapp_status: 'failed'
+            });
+            revalidatePath('/dashboard/sales');
+            return { success: false, message: "Failed to generate message content." };
+        }
     } catch (error: any) {
         console.error("Error resending invoice:", error);
         return { success: false, message: "Could not resend the invoice." };

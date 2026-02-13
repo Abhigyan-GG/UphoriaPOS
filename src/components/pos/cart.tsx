@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useContext, useState } from 'react';
@@ -27,10 +28,30 @@ export function Cart() {
   const { items, updateItem, removeItem, clearCart, totals } = cartContext;
 
   const handlePriceChange = (productId: string, value: string) => {
-    const price = parseFloat(value);
-    if (!isNaN(price)) {
-      updateItem(productId, { final_price: price });
+    const item = items.find((i) => i.product_id === productId);
+    if (!item) return;
+
+    if (value === '') {
+      updateItem(productId, { final_price: 0 });
+      return;
     }
+
+    const price = parseFloat(value);
+    if (isNaN(price)) {
+      return;
+    }
+
+    if (price < item.cost_price) {
+      toast({
+        variant: "destructive",
+        title: "Invalid Price",
+        description: `Price (₹${price}) cannot be below the cost price of ₹${item.cost_price.toFixed(2)}.`,
+      });
+      // Do not update the state, allowing the input to revert to the valid state on re-render.
+      return;
+    }
+    
+    updateItem(productId, { final_price: price });
   };
 
   const handleQuantityChange = (productId: string, value: string) => {
@@ -64,16 +85,21 @@ export function Cart() {
 
     if (result.success && result.saleId) {
       
-      const whatsappResult = await generateWhatsappMessageAction({
-        customerName: 'Valued Customer',
-        storeName: 'Guns And Gulab',
-        invoiceNumber: result.saleId,
-        totalAmount: `₹${totals.total.toFixed(2)}`,
-        invoiceLink: 'http://example.com/invoice.pdf',
-        itemsPurchased: items.map(i => i.product_name)
-      });
+      if(customerPhone && customerPhone.length > 3) {
+        const whatsappResult = await generateWhatsappMessageAction({
+            customerName: 'Valued Customer',
+            storeName: 'Guns And Gulab',
+            invoiceNumber: result.saleId,
+            totalAmount: `₹${totals.total.toFixed(2)}`,
+            invoiceLink: 'http://example.com/invoice.pdf', // Placeholder
+            itemsPurchased: items.map(i => i.product_name)
+        });
 
-      console.log('WhatsApp Message Generated:', whatsappResult.message);
+        if (whatsappResult.success) {
+            console.log('WhatsApp Message Generated:', whatsappResult.message);
+            await resendInvoiceAction(result.saleId); // This will update the status to 'sent'
+        }
+      }
       
       toast({
         title: "Sale Completed!",
@@ -129,6 +155,7 @@ export function Cart() {
                            onChange={(e) => handlePriceChange(item.product_id, e.target.value)}
                            className="h-8 w-28 pl-6"
                            aria-label="Final Price"
+                           step="0.01"
                          />
                       </div>
                     </div>
@@ -157,10 +184,12 @@ export function Cart() {
                   <span>Subtotal</span>
                   <span>₹{totals.subtotal.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span>Tax (5%)</span>
-                  <span>₹{totals.tax.toFixed(2)}</span>
-                </div>
+                {totals.tax > 0 && (
+                  <div className="flex justify-between">
+                    <span>Tax</span>
+                    <span>₹{totals.tax.toFixed(2)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between font-bold text-base">
                   <span>Total</span>
                   <span>₹{totals.total.toFixed(2)}</span>

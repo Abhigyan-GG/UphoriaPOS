@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -16,6 +17,7 @@ import {
   Package,
   History,
   LogOut,
+  LineChart,
 } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -26,6 +28,7 @@ const menuItems = [
   { href: "/dashboard", label: "POS", icon: ShoppingCart },
   { href: "/dashboard/inventory", label: "Inventory", icon: Package },
   { href: "/dashboard/sales", label: "Sales History", icon: History },
+  { href: "/dashboard/analytics", label: "Analytics", icon: LineChart },
 ];
 
 export function DashboardSidebar() {

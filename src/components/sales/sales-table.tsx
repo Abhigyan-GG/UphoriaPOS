@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { Sale } from "@/lib/types";
@@ -11,18 +12,19 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Send, CheckCircle, XCircle, SkipForward, FileDown } from "lucide-react";
+import { MoreHorizontal, Send, CheckCircle, XCircle, SkipForward, FileDown, Trash2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "../ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { resendInvoiceAction } from "@/lib/actions";
+import { resendInvoiceAction, deleteSaleAction } from "@/lib/actions";
 import { Timestamp } from "firebase/firestore";
 
 interface SalesTableProps {
@@ -49,6 +51,19 @@ export function SalesTable({ sales }: SalesTableProps) {
     }
   };
 
+  const handleDelete = async (saleId: string) => {
+    if (!confirm(`Are you sure you want to delete sale ${saleId}? This action cannot be undone.`)) {
+      return;
+    }
+    toast({ title: "Deleting Sale...", description: `Removing sale ${saleId}` });
+    const result = await deleteSaleAction(saleId);
+    if (result.success) {
+      toast({ title: "Sale Deleted", description: `Sale ${saleId} has been removed.` });
+    } else {
+      toast({ variant: 'destructive', title: "Failed", description: "Could not delete the sale." });
+    }
+  };
+
   return (
     <Card>
       <CardContent className="p-0">
@@ -71,7 +86,7 @@ export function SalesTable({ sales }: SalesTableProps) {
                 const createdAtDate = sale.created_at instanceof Timestamp ? sale.created_at.toDate() : new Date(sale.created_at as any);
                 return (
                   <TableRow key={sale.id}>
-                    <TableCell className="font-medium">{sale.id}</TableCell>
+                    <TableCell className="font-medium truncate max-w-24">{sale.id}</TableCell>
                     <TableCell>
                       <div className="flex flex-col">
                         <span>{format(createdAtDate, "dd MMM yyyy")}</span>
@@ -97,11 +112,15 @@ export function SalesTable({ sales }: SalesTableProps) {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem disabled={!sale.invoice_pdf_url}>
+                            <DropdownMenuItem disabled>
                                 <FileDown className="mr-2 h-4 w-4" /> Download Invoice
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleResend(sale.id)} disabled={sale.whatsapp_status === 'skipped'}>
                                 <Send className="mr-2 h-4 w-4" /> Resend WhatsApp
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                             <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(sale.id)}>
+                                <Trash2 className="mr-2 h-4 w-4" /> Delete Sale
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>

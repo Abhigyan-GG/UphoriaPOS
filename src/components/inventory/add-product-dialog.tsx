@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -105,9 +106,7 @@ export function AddProductDialog({ categories }: AddProductDialogProps) {
   };
 
   const onSubmit = async (data: ProductFormValues) => {
-    // TODO: The image upload functionality is not fully wired up yet.
-    // For now, we'll use a placeholder image.
-    const imageUrl = `https://picsum.photos/seed/${data.sku || 'new-product'}/400/400`;
+    const imageUrl = imagePreview || `https://picsum.photos/seed/${data.sku || 'new-product'}/400/400`;
 
     const result = await addProductAction({
       ...data,

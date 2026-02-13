@@ -1,3 +1,4 @@
+
 import type { Timestamp } from 'firebase/firestore';
 
 export interface Category {
@@ -24,6 +25,7 @@ export interface CartItem {
   default_price: number;
   final_price: number;
   quantity: number;
+  cost_price: number;
 }
 
 export interface SaleItem {
@@ -32,6 +34,7 @@ export interface SaleItem {
   quantity: number;
   unit_price: number; // final edited price
   line_total: number;
+  cost_price: number;
 }
 
 export interface Sale {

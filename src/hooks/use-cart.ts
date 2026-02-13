@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useCallback } from 'react';
@@ -24,6 +25,7 @@ export const useCart = () => {
           default_price: product.price,
           final_price: product.price,
           quantity: 1,
+          cost_price: product.cost_price,
         },
       ];
     });
@@ -49,7 +51,7 @@ export const useCart = () => {
     const subtotal = items.reduce((acc, item) => acc + item.final_price * item.quantity, 0);
     // These would be calculated based on user input in a real app
     const discount = 0; 
-    const tax = subtotal * 0.05; // 5% tax for example
+    const tax = 0; // 5% tax removed as requested
     const total = subtotal - discount + tax;
 
     return { subtotal, discount, tax, total };
