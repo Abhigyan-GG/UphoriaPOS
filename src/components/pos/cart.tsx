@@ -7,12 +7,12 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
-import { Trash2, ShoppingCart, Loader2, CheckCircle } from 'lucide-react';
+import { ShoppingCart, Loader2, CheckCircle } from 'lucide-react';
 import { CartContext } from '@/app/dashboard/page';
 import { useToast } from "@/hooks/use-toast";
 import { completeSaleAction, generateWhatsappMessageAction } from '@/lib/actions';
-import type { CartItem } from '@/lib/types';
+import { resendInvoiceAction } from '@/lib/actions';
+import { CartItemRow } from './cart-item-row';
 
 export function Cart() {
   const [customerPhone, setCustomerPhone] = useState('+91');
@@ -25,42 +25,8 @@ export function Cart() {
     throw new Error('Cart must be used within a CartProvider');
   }
 
-  const { items, updateItem, removeItem, clearCart, totals } = cartContext;
+  const { items, clearCart, totals } = cartContext;
 
-  const handlePriceChange = (productId: string, value: string) => {
-    const item = items.find((i) => i.product_id === productId);
-    if (!item) return;
-
-    if (value === '') {
-      updateItem(productId, { final_price: 0 });
-      return;
-    }
-
-    const price = parseFloat(value);
-    if (isNaN(price)) {
-      return;
-    }
-
-    if (price < item.cost_price) {
-      toast({
-        variant: "destructive",
-        title: "Invalid Price",
-        description: `Price (₹${price}) cannot be below the cost price of ₹${item.cost_price.toFixed(2)}.`,
-      });
-      // Do not update the state, allowing the input to revert to the valid state on re-render.
-      return;
-    }
-    
-    updateItem(productId, { final_price: price });
-  };
-
-  const handleQuantityChange = (productId: string, value: string) => {
-    const quantity = parseInt(value, 10);
-    if (!isNaN(quantity) && quantity > 0) {
-      updateItem(productId, { quantity });
-    }
-  };
-  
   const handleCompleteSale = async () => {
     if (items.length === 0) {
       toast({
@@ -69,6 +35,16 @@ export function Cart() {
         description: "Please add products to the cart before completing a sale.",
       });
       return;
+    }
+
+    const invalidItem = items.find(item => item.final_price < item.cost_price);
+    if (invalidItem) {
+        toast({
+            variant: "destructive",
+            title: "Invalid Price",
+            description: `The price for "${invalidItem.product_name}" is below its cost. Please adjust the price.`,
+        });
+        return;
     }
     
     setIsProcessing(true);
@@ -103,7 +79,7 @@ export function Cart() {
       
       toast({
         title: "Sale Completed!",
-        description: `Sale ID: ${result.saleId}. Invoice sent.`,
+        description: `Sale ID: ${result.saleId}.`,
         action: <div className="p-1"><CheckCircle className="text-green-500" /></div>,
       });
       clearCart();
@@ -136,42 +112,7 @@ export function Cart() {
           ) : (
             <div className="space-y-4">
               {items.map((item) => (
-                <div key={item.product_id} className="flex items-start gap-4">
-                  <div className="flex-1 space-y-2">
-                    <p className="font-semibold">{item.product_name}</p>
-                    <div className="flex gap-2">
-                      <Input
-                        type="number"
-                        value={item.quantity}
-                        onChange={(e) => handleQuantityChange(item.product_id, e.target.value)}
-                        className="h-8 w-20 text-center"
-                        aria-label="Quantity"
-                      />
-                      <div className="relative">
-                         <span className="absolute left-2.5 top-1.5 text-sm text-muted-foreground">₹</span>
-                         <Input
-                           type="number"
-                           value={item.final_price}
-                           onChange={(e) => handlePriceChange(item.product_id, e.target.value)}
-                           className="h-8 w-28 pl-6"
-                           aria-label="Final Price"
-                           step="0.01"
-                         />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-semibold">₹{(item.final_price * item.quantity).toFixed(2)}</p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                    onClick={() => removeItem(item.product_id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
+                <CartItemRow key={item.product_id} item={item} />
               ))}
             </div>
           )}

@@ -31,8 +31,10 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // IMPORTANT: This increases the upload limit for Server Actions.
+  // Images are sent as base64 strings, which can be large.
   serverActions: {
-    bodySizeLimit: 4 * 1024 * 1024, // 4MB
+    bodySizeLimit: '4mb',
   },
 };
 

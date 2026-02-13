@@ -75,6 +75,27 @@ export async function addProductAction(productData: Omit<Product, 'id' | 'create
     }
 }
 
+export async function updateProductAction(productId: string, productData: Partial<Omit<Product, 'id' | 'created_at' | 'updated_at'>>) {
+    const adminCheck = checkFirebaseAdmin();
+    if (!adminCheck.success) return adminCheck;
+
+    try {
+        const dataToUpdate = {
+            ...productData,
+            updated_at: FieldValue.serverTimestamp(),
+        };
+
+        await firestoreAdmin!.collection('products').doc(productId).update(dataToUpdate);
+        
+        revalidatePath('/dashboard/inventory');
+        return { success: true };
+    } catch (error: any) {
+        console.error("Error updating product:", error);
+        return { success: false, message: error.message || "Failed to update product." };
+    }
+}
+
+
 export async function deleteProductAction(productId: string) {
     const adminCheck = checkFirebaseAdmin();
     if (!adminCheck.success) return adminCheck;
