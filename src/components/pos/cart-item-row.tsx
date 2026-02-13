@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useContext } from 'react';
+import { useContext } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Trash2 } from 'lucide-react';
@@ -20,42 +20,40 @@ export function CartItemRow({ item }: CartItemRowProps) {
   const { updateItem, removeItem } = cartContext;
   const { toast } = useToast();
 
-  const [quantity, setQuantity] = useState(item.quantity.toString());
-  const [price, setPrice] = useState(item.final_price.toString());
+  const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    const num = parseInt(value, 10);
 
-  useEffect(() => {
-    setQuantity(item.quantity.toString());
-  }, [item.quantity]);
-
-  useEffect(() => {
-    // Only update from parent if not currently being edited, to avoid cursor jumps
-    if (parseFloat(price) !== item.final_price) {
-        setPrice(item.final_price.toString());
+    if (value === "" || (num > 0 && num <= item.stock)) {
+        updateItem(item.product_id, { quantity: num });
+    } else if (num > item.stock) {
+        toast({
+            variant: "destructive",
+            title: "Stock limit reached",
+            description: `Only ${item.stock} available for ${item.product_name}.`
+        });
+        updateItem(item.product_id, { quantity: item.stock });
     }
-  }, [item.final_price]);
+  };
 
-  const handleQuantityBlur = () => {
-    const num = parseInt(quantity, 10);
-    if (isNaN(num) || num <= 0) {
-      setQuantity(item.quantity.toString()); // revert
-    } else {
-      updateItem(item.product_id, { quantity: num });
+  const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    // Allow empty or partial numbers for better typing experience
+    if (value === "" || !isNaN(parseFloat(value))) {
+        updateItem(item.product_id, { final_price: parseFloat(value) });
     }
   };
 
   const handlePriceBlur = () => {
-    const num = parseFloat(price);
-    if (isNaN(num) || num < 0) { // allow 0
-      setPrice(item.final_price.toString()); // revert
-    } else if (num < item.cost_price) {
+    if (isNaN(item.final_price)) {
+        updateItem(item.product_id, { final_price: item.default_price });
+    } else if (item.final_price < item.cost_price) {
       toast({
         variant: 'destructive',
         title: 'Invalid Price',
-        description: `Price cannot be below the cost price of ₹${item.cost_price.toFixed(2)}.`,
+        description: `Price for ${item.product_name} cannot be below the cost of ₹${item.cost_price.toFixed(2)}.`,
       });
-      setPrice(item.final_price.toString()); // revert
-    } else {
-      updateItem(item.product_id, { final_price: num });
+      updateItem(item.product_id, { final_price: item.cost_price });
     }
   };
   
@@ -66,21 +64,19 @@ export function CartItemRow({ item }: CartItemRowProps) {
         <div className="flex gap-2">
           <Input
             type="number"
-            value={quantity}
-            onChange={(e) => setQuantity(e.target.value)}
-            onBlur={handleQuantityBlur}
-            onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+            value={isNaN(item.quantity) ? '' : item.quantity}
+            onChange={handleQuantityChange}
             className="h-8 w-20 text-center"
             aria-label="Quantity"
+            max={item.stock}
           />
           <div className="relative">
              <span className="absolute left-2.5 top-1.5 text-sm text-muted-foreground">₹</span>
              <Input
                type="number"
-               value={price}
-               onChange={(e) => setPrice(e.target.value)}
+               value={isNaN(item.final_price) ? '' : item.final_price}
+               onChange={handlePriceChange}
                onBlur={handlePriceBlur}
-               onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
                className="h-8 w-28 pl-6"
                aria-label="Final Price"
                step="0.01"

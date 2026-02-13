@@ -17,6 +17,7 @@ export interface Product {
   image_url: string;
   created_at: Timestamp;
   updated_at: Timestamp;
+  description?: string;
 }
 
 export interface CartItem {
@@ -26,6 +27,7 @@ export interface CartItem {
   final_price: number;
   quantity: number;
   cost_price: number;
+  stock: number;
 }
 
 export interface SaleItem {

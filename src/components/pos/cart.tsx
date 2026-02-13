@@ -10,8 +10,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { ShoppingCart, Loader2, CheckCircle } from 'lucide-react';
 import { CartContext } from '@/app/dashboard/page';
 import { useToast } from "@/hooks/use-toast";
-import { completeSaleAction, generateWhatsappMessageAction } from '@/lib/actions';
-import { resendInvoiceAction } from '@/lib/actions';
+import { completeSaleAction } from '@/lib/actions';
 import { CartItemRow } from './cart-item-row';
 
 export function Cart() {
@@ -60,23 +59,6 @@ export function Cart() {
     const result = await completeSaleAction(saleData);
 
     if (result.success && result.saleId) {
-      
-      if(customerPhone && customerPhone.length > 3) {
-        const whatsappResult = await generateWhatsappMessageAction({
-            customerName: 'Valued Customer',
-            storeName: 'Guns And Gulab',
-            invoiceNumber: result.saleId,
-            totalAmount: `₹${totals.total.toFixed(2)}`,
-            invoiceLink: 'http://example.com/invoice.pdf', // Placeholder
-            itemsPurchased: items.map(i => i.product_name)
-        });
-
-        if (whatsappResult.success) {
-            console.log('WhatsApp Message Generated:', whatsappResult.message);
-            await resendInvoiceAction(result.saleId); // This will update the status to 'sent'
-        }
-      }
-      
       toast({
         title: "Sale Completed!",
         description: `Sale ID: ${result.saleId}.`,

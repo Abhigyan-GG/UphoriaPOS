@@ -11,11 +11,18 @@ export const useCart = () => {
     setItems((prevItems) => {
       const existingItem = prevItems.find((item) => item.product_id === product.id);
       if (existingItem) {
+        // Do not add if quantity would exceed stock
+        if (existingItem.quantity >= product.stock) {
+          return prevItems;
+        }
         return prevItems.map((item) =>
           item.product_id === product.id
             ? { ...item, quantity: item.quantity + 1 }
             : item
         );
+      }
+      if (product.stock < 1) {
+        return prevItems; // Do not add out of stock items
       }
       return [
         ...prevItems,
@@ -26,12 +33,13 @@ export const useCart = () => {
           final_price: product.price,
           quantity: 1,
           cost_price: product.cost_price,
+          stock: product.stock,
         },
       ];
     });
   }, []);
 
-  const updateItem = useCallback((productId: string, updates: Partial<CartItem>) => {
+  const updateItem = useCallback((productId: string, updates: Partial<Pick<CartItem, 'quantity' | 'final_price'>>) => {
     setItems((prevItems) =>
       prevItems.map((item) =>
         item.product_id === productId ? { ...item, ...updates } : item
@@ -48,10 +56,13 @@ export const useCart = () => {
   }, []);
 
   const totals = useMemo(() => {
-    const subtotal = items.reduce((acc, item) => acc + item.final_price * item.quantity, 0);
-    // These would be calculated based on user input in a real app
+    const subtotal = items.reduce((acc, item) => {
+        const quantity = isNaN(item.quantity) ? 0 : item.quantity;
+        const price = isNaN(item.final_price) ? 0 : item.final_price;
+        return acc + price * quantity;
+    }, 0);
     const discount = 0; 
-    const tax = 0; // 5% tax removed as requested
+    const tax = 0;
     const total = subtotal - discount + tax;
 
     return { subtotal, discount, tax, total };

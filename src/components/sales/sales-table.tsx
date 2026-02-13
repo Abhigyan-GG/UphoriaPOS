@@ -24,7 +24,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "../ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { resendInvoiceAction, deleteSaleAction } from "@/lib/actions";
+import { sendWhatsappMessageAction, deleteSaleAction } from "@/lib/actions";
 import { Timestamp } from "firebase/firestore";
 
 interface SalesTableProps {
@@ -42,12 +42,16 @@ export function SalesTable({ sales }: SalesTableProps) {
   const { toast } = useToast();
 
   const handleResend = async (saleId: string) => {
-    toast({ title: "Resending Invoice...", description: `Processing request for sale ${saleId}` });
-    const result = await resendInvoiceAction(saleId);
+    toast({ title: "Sending WhatsApp Invoice...", description: `Processing request for sale ${saleId}` });
+    const result = await sendWhatsappMessageAction(saleId);
     if (result.success) {
-      toast({ title: "Request Sent!", description: `Invoice for sale ${saleId} is being resent.` });
+      toast({
+        title: "WhatsApp Sent (Simulated)",
+        description: <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4"><code className="text-white whitespace-pre-wrap">{result.message}</code></pre>,
+        duration: 9000,
+      });
     } else {
-      toast({ variant: 'destructive', title: "Failed", description: "Could not resend the invoice." });
+      toast({ variant: 'destructive', title: "Failed to Send", description: result.message });
     }
   };
 

@@ -7,7 +7,7 @@ import { generateProductDescription } from "@/ai/flows/generate-product-descript
 import { generateWhatsappInvoiceMessage } from "@/ai/flows/generate-whatsapp-invoice-message";
 import type { GenerateProductDescriptionInput } from "@/ai/flows/generate-product-description";
 import type { GenerateWhatsappInvoiceMessageInput } from "@/ai/flows/generate-whatsapp-invoice-message";
-import type { Product, CartItem, SaleItem } from "./types";
+import type { Product, CartItem, SaleItem, Sale } from "./types";
 import { firestoreAdmin, adminInitError } from "@/firebase/admin";
 
 const serverSideFirebaseErrorMessage = "An unexpected error occurred with the server-side Firebase configuration.";
@@ -68,6 +68,7 @@ export async function addProductAction(productData: Omit<Product, 'id' | 'create
             updated_at: FieldValue.serverTimestamp(),
         });
         revalidatePath('/dashboard/inventory');
+        revalidatePath('/dashboard');
         return { success: true, docId: docRef.id };
     } catch (error: any) {
         console.error("Error adding product:", error);
@@ -75,19 +76,24 @@ export async function addProductAction(productData: Omit<Product, 'id' | 'create
     }
 }
 
-export async function updateProductAction(productId: string, productData: Partial<Omit<Product, 'id' | 'created_at' | 'updated_at'>>) {
+export async function updateProductAction(productId: string, productData: Partial<Omit<Product, 'id' | 'created_at' | 'updated_at' | 'description'>> & { description?: string }) {
     const adminCheck = checkFirebaseAdmin();
     if (!adminCheck.success) return adminCheck;
 
     try {
-        const dataToUpdate = {
+        const dataToUpdate: any = {
             ...productData,
             updated_at: FieldValue.serverTimestamp(),
         };
 
+        if (typeof productData.description === 'undefined') {
+            dataToUpdate.description = FieldValue.delete();
+        }
+
         await firestoreAdmin!.collection('products').doc(productId).update(dataToUpdate);
         
         revalidatePath('/dashboard/inventory');
+        revalidatePath('/dashboard');
         return { success: true };
     } catch (error: any) {
         console.error("Error updating product:", error);
@@ -103,6 +109,7 @@ export async function deleteProductAction(productId: string) {
     try {
         await firestoreAdmin!.collection('products').doc(productId).delete();
         revalidatePath('/dashboard/inventory');
+        revalidatePath('/dashboard');
         return { success: true };
     } catch (error: any) {
         console.error("Error deleting product:", error);
@@ -142,7 +149,7 @@ export async function completeSaleAction(saleData: SaleData) {
             customer_phone: customerPhone,
             items: saleItems,
             created_at: FieldValue.serverTimestamp(),
-            whatsapp_status: customerPhone.length > 3 ? 'pending' : 'skipped',
+            whatsapp_status: customerPhone && customerPhone.length > 3 ? 'pending' : 'skipped',
             invoice_pdf_url: '', // This would be generated and uploaded in a real scenario
         };
 
@@ -159,6 +166,11 @@ export async function completeSaleAction(saleData: SaleData) {
         }
         
         await batch.commit();
+        
+        // Asynchronously send WhatsApp message without blocking the UI response
+        if (saleDoc.whatsapp_status === 'pending') {
+            sendWhatsappMessageAction(saleRef.id).catch(err => console.error("Failed to send WhatsApp message in background:", err));
+        }
         
         revalidatePath('/dashboard/sales');
         revalidatePath('/dashboard/inventory');
@@ -201,17 +213,7 @@ export async function generateDescriptionAction(input: GenerateProductDescriptio
     }
 }
 
-export async function generateWhatsappMessageAction(input: GenerateWhatsappInvoiceMessageInput) {
-    try {
-        const result = await generateWhatsappInvoiceMessage(input);
-        return { success: true, message: result.message };
-    } catch (error) {
-        console.error("WhatsApp message generation failed:", error);
-        return { success: false, message: "Failed to generate WhatsApp message." };
-    }
-}
-
-export async function resendInvoiceAction(saleId: string) {
+export async function sendWhatsappMessageAction(saleId: string) {
     const adminCheck = checkFirebaseAdmin();
     if (!adminCheck.success) return adminCheck;
     
@@ -221,9 +223,9 @@ export async function resendInvoiceAction(saleId: string) {
             return { success: false, message: "Sale not found." };
         }
 
-        const sale = saleDoc.data();
+        const sale = saleDoc.data() as Sale;
         if (!sale || !sale.customer_phone || sale.whatsapp_status === 'skipped') {
-            return { success: false, message: "No customer phone or sending is skipped." };
+            return { success: false, message: "No customer phone or sending is skipped for this sale." };
         }
 
         const whatsappInput: GenerateWhatsappInvoiceMessageInput = {
@@ -235,24 +237,25 @@ export async function resendInvoiceAction(saleId: string) {
             itemsPurchased: sale.items.map((i: SaleItem) => i.product_name)
         };
 
-        const result = await generateWhatsappMessageAction(whatsappInput);
+        const result = await generateWhatsappInvoiceMessage(whatsappInput);
         
-        if (result.success) {
+        if (result.message) {
+            // This is where you would integrate a real WhatsApp API
             console.log("Simulating sending WhatsApp message:", result.message);
             await firestoreAdmin!.collection('sales').doc(saleId).update({
                 whatsapp_status: 'sent'
             });
             revalidatePath('/dashboard/sales');
-            return { success: true };
+            return { success: true, message: result.message };
         } else {
-            await firestoreAdmin!.collection('sales').doc(saleId).update({
-                whatsapp_status: 'failed'
-            });
-            revalidatePath('/dashboard/sales');
-            return { success: false, message: "Failed to generate message content." };
+            throw new Error("AI failed to generate a message.");
         }
     } catch (error: any) {
-        console.error("Error resending invoice:", error);
-        return { success: false, message: "Could not resend the invoice." };
+        console.error("Error sending WhatsApp message:", error);
+        await firestoreAdmin!.collection('sales').doc(saleId).update({
+            whatsapp_status: 'failed'
+        }).catch(err => console.error("Failed to update status to 'failed':", err));
+        revalidatePath('/dashboard/sales');
+        return { success: false, message: "Could not send the WhatsApp invoice." };
     }
 }
