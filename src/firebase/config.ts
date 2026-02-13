@@ -1,4 +1,4 @@
-import { initializeApp, getApp, getApps, type FirebaseOptions } from 'firebase/app';
+import { initializeApp, getApp, getApps, type FirebaseOptions } from "firebase/app";
 
 const firebaseConfig: FirebaseOptions = {
   projectId: "studio-3553753010-92c77",
@@ -6,11 +6,11 @@ const firebaseConfig: FirebaseOptions = {
   apiKey: "AIzaSyDAxbC4dOKO3FhRBp-SJ2_XOFmf5X_lJT4",
   authDomain: "studio-3553753010-92c77.firebaseapp.com",
   measurementId: "",
-  messagingSenderId: "1000254178969"
+  messagingSenderId: "1000254178969",
 };
 
 function initializeFirebase() {
-    return !getApps().length ? initializeApp(firebaseConfig) : getApp();
+  return !getApps().length ? initializeApp(firebaseConfig) : getApp();
 }
 
 export const firebaseApp = initializeFirebase();
